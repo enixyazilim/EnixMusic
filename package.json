@@ -1,0 +1,74 @@
+{
+  "name": "enix-music",
+  "productName": "Enix Music",
+  "version": "0.1.0",
+  "description": "Enix Music - Modern YouTube Music Desktop Client",
+  "homepage": "https://github.com/enixyazilim/EnixMusic",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enixyazilim/EnixMusic.git"
+  },
+  "main": "out/main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "dist": "pnpm build && electron-builder --win",
+    "start": "electron-vite preview",
+    "lint": "eslint --ext .ts,.vue .",
+    "format": "prettier --write \"src/**/*.{ts,vue,css,html}\"",
+    "lint:fix": "eslint --ext .ts,.tsx,.vue .",
+    "prettier": "prettier --check *.{ts,tsx,vue}",
+    "prettier:fix": "prettier --write *.{ts,tsx,vue}",
+    "postinstall": "husky"
+  },
+  "keywords": [],
+  "author": "Enix Yazılım 2026",
+  "license": "GPL-3.0-only",
+  "devDependencies": {
+    "@electron/fuses": "^2.0.0",
+    "@types/electron-squirrel-startup": "^1.0.2",
+    "@types/node": "^22.19.11",
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "electron": "^40.4.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-import-resolver-typescript": "^3.10.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-vue": "^9.33.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "3.8.1",
+    "resedit": "^3.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.9.3",
+    "vite": "^5.4.21"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/error": "^4.2.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/type-provider-typebox": "^5.2.0",
+    "@ghostery/adblocker-electron": "^2.18.1",
+    "@sinclair/typebox": "^0.34.48",
+    "conf": "^10.2.0",
+    "cross-fetch": "^4.1.0",
+    "electron-log": "5.4.3",
+    "electron-squirrel-startup": "^1.0.1",
+    "fastify": "^5.7.4",
+    "fastify-socket.io": "^5.1.0",
+    "material-symbols": "^0.12.0",
+    "socket.io": "^4.8.3",
+    "vue": "^3.5.28"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,vue}": [
+      "prettier --write",
+      "eslint --cache --fix"
+    ]
+  }
+}

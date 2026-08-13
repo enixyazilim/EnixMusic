@@ -1,0 +1,14 @@
+packages:
+  - '.'
+allowBuilds:
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  fastify-socket.io: true
+  unrs-resolver: true
+onlyBuiltDependencies:
+  - electron
+  - electron-winstaller
+  - esbuild
+  - fastify-socket.io
+  - unrs-resolver

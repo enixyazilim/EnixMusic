@@ -1,0 +1,35 @@
+// See the Electron documentation for details on how to use preload scripts:
+// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
+
+import { contextBridge, ipcRenderer } from "electron";
+import { WindowsEventArguments } from "~shared/types";
+import { MemoryStoreSchema, StoreSchema } from "~shared/store/schema";
+import Store from "../../store-ipc/store";
+import MemoryStore from "../../store-ipc/memory-store";
+
+const store = new Store<StoreSchema>();
+const memoryStore = new MemoryStore<MemoryStoreSchema>();
+
+contextBridge.exposeInMainWorld("enixm", {
+  minimizeWindow: () => ipcRenderer.send("mainWindow:minimize"),
+  maximizeWindow: () => ipcRenderer.send("mainWindow:maximize"),
+  restoreWindow: () => ipcRenderer.send("mainWindow:restore"),
+  closeWindow: () => ipcRenderer.send("mainWindow:close"),
+  handleWindowEvents: (callback: (event: Electron.IpcRendererEvent, args: WindowsEventArguments) => void) =>
+    ipcRenderer.on("mainWindow:stateChanged", callback),
+  requestWindowState: () => ipcRenderer.send("mainWindow:requestWindowState"),
+  openSettingsWindow: () => ipcRenderer.send("settingsWindow:open"),
+  switchFocus: (context: string) => ipcRenderer.send("enixmView:switchFocus", context),
+  enixmViewNavigateDefault: () => ipcRenderer.send("enixmView:navigateDefault"),
+  enixmViewRecreate: () => ipcRenderer.send("enixmView:recreate"),
+  store: {
+    get: async (key: keyof StoreSchema) => await store.get(key),
+    onDidAnyChange: (callback: (newState: StoreSchema, oldState: StoreSchema) => void) => store.onDidAnyChange(callback)
+  },
+  memoryStore: {
+    set: (key: string, value: unknown) => memoryStore.set(key, value),
+    get: async (key: keyof MemoryStoreSchema) => await memoryStore.get(key),
+    onStateChanged: (callback: (newState: MemoryStoreSchema, oldState: MemoryStoreSchema) => void) => memoryStore.onStateChanged(callback)
+  },
+  restartApplicationForUpdate: () => ipcRenderer.send("app:restartApplicationForUpdate")
+});

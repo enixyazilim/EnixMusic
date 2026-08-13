@@ -1,0 +1,37 @@
+appId: com.enix.music
+productName: Enix Music
+afterSign: scripts/afterSign.js
+publish:
+  provider: github
+  owner: enixyazilim
+  repo: EnixMusic
+directories:
+  output: dist
+files:
+  - "package.json"
+  - "out/**/*"
+extraResources:
+  - from: "src/assets/icons"
+    to: ""
+    filter:
+      - "tray.ico"
+      - "trayTemplate.png"
+      - "trayTemplate@2x.png"
+      - "enixmusic.png"
+      - "enixmusic_white.png"
+      - "enixmusic_black.png"
+      - "controls/*.png"
+win:
+  target: nsis
+  icon: src/assets/icons/enixmusic.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: "Enix Music"
+  language: "1055"
+  installerLanguages: "tr-TR"
+protocols:
+  - name: "Enix Music Protocol"
+    schemes:
+      - "enixmusic"

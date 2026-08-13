@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build & Package Outputs
+dist/
+out/
+build/
+*.exe
+*.zip
+*.tar.gz
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# Cache & Temporary Files
+.cache/
+.vite/
+*.tsbuildinfo
+.eslintcache
+.npm/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Operating System & IDE Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
