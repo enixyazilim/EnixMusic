@@ -58,7 +58,7 @@
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/EnixMusic.git
+git clone https://github.com/enixyazilim/EnixMusic.git
 
 # 2. Enter the project directory
 cd EnixMusic
