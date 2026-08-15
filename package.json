@@ -1,7 +1,7 @@
 {
   "name": "enix-music",
   "productName": "Enix Music",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Enix Music - Modern YouTube Music Desktop Client",
   "homepage": "https://github.com/enixyazilim/EnixMusic",
   "repository": {
@@ -59,6 +59,7 @@
     "cross-fetch": "^4.1.0",
     "electron-log": "5.4.3",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.8.9",
     "fastify": "^5.7.4",
     "fastify-socket.io": "^5.1.0",
     "material-symbols": "^0.12.0",

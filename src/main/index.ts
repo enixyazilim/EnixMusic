@@ -1,6 +1,6 @@
+import { autoUpdater } from "electron-updater";
 import {
   app,
-  autoUpdater,
   BrowserView,
   BrowserWindow,
   clipboard,
@@ -270,15 +270,18 @@ function shouldDisableUpdates() {
   if (process.platform !== "win32") return true;
 }
 
-// Configure the autoupdater
-// macOS cannot use the autoUpdater without a code signature at this time
+// Configure the autoupdater using electron-updater (compatible with NSIS & GitHub Releases)
 if (app.isPackaged && !shouldDisableUpdates() && !ENIXM_DISABLE_UPDATES) {
-  const updateServer = "https://update.electronjs.org";
-  const updateFeed = `${updateServer}/${ENIXM_UPDATE_FEED_OWNER}/${ENIXM_UPDATE_FEED_REPOSITORY}/${process.platform}-${process.arch}/${app.getVersion()}`;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.logger = log;
 
   autoUpdater.setFeedURL({
-    url: updateFeed
+    provider: "github",
+    owner: ENIXM_UPDATE_FEED_OWNER || "enixyazilim",
+    repo: ENIXM_UPDATE_FEED_REPOSITORY || "EnixMusic"
   });
+
   autoUpdater.on("checking-for-update", () => {
     if (appLaunchUpdateCheck) memoryStore.set("enixmViewLoadingStatus", getLoadingLocale().checkingForUpdates);
     if (settingsWindow) settingsWindow.webContents.send("app:checkingForUpdates");
@@ -301,7 +304,8 @@ if (app.isPackaged && !shouldDisableUpdates() && !ENIXM_DISABLE_UPDATES) {
     if (appLaunchUpdateCheck) autoUpdater.quitAndInstall();
     if (settingsWindow) settingsWindow.webContents.send("app:updateDownloaded");
   });
-  autoUpdater.on("error", () => {
+  autoUpdater.on("error", (err) => {
+    log.warn("Application updater error:", err?.message || err);
     if (appLaunchUpdateCheck) appLaunchUpdateCheck = false;
     if (settingsWindow) settingsWindow.webContents.send("app:updateNotAvailable");
   });
