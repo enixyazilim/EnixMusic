@@ -49,7 +49,11 @@ const injectEarlyFixStyles = () => {
     tp-yt-paper-tooltip[for="skip-navigation"],
     paper-tooltip[for="skip-navigation"],
     ytmusic-you-there-renderer[hidden],
-    ytmusic-pivot-bar-renderer #skip-navigation {
+    ytmusic-pivot-bar-renderer #skip-navigation,
+    tp-yt-iron-overlay-backdrop:not([opened]):not(.opened),
+    iron-overlay-backdrop:not([opened]):not(.opened),
+    tp-yt-paper-dialog:not([opened]):not(.opened),
+    paper-dialog:not([opened]):not(.opened) {
       display: none !important;
       visibility: hidden !important;
       pointer-events: none !important;
@@ -359,6 +363,30 @@ async function setupAutoConfirmKeepPlaying() {
     }
   });
 
+  async function resumePlayback() {
+    try {
+      await webFrame.executeJavaScript(`
+        (function() {
+          try {
+            const bar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar");
+            if (bar && bar.playerApi) {
+              const state = typeof bar.playerApi.getPlayerState === "function" ? bar.playerApi.getPlayerState() : -1;
+              if (state === 2) { // 2 = PAUSED
+                bar.playerApi.playVideo();
+              }
+            }
+          } catch(e) {}
+        })()
+      `);
+    } catch (e) {
+      /* ignore */
+    }
+    const video = document.querySelector<HTMLVideoElement>("video");
+    if (video && video.paused) {
+      video.play().catch(() => {});
+    }
+  }
+
   function dismissYouTherePopup() {
     if (!autoConfirmEnabled) return;
 
@@ -367,71 +395,80 @@ async function setupAutoConfirmKeepPlaying() {
       "ytmusic-you-there-renderer, yt-confirm-dialog-renderer"
     );
 
-    if (youThereRenderers.length === 0) return;
+    let popupFound = false;
 
-    youThereRenderers.forEach(renderer => {
-      // 1. Onay butonunu bul ve tıkla
-      const confirmBtn = renderer.querySelector<HTMLElement>(
-        "#confirm-button button, #button button, #confirm-button, tp-yt-paper-button, .confirm-button, button#button, button"
-      );
-      if (confirmBtn) {
+    if (youThereRenderers.length > 0) {
+      popupFound = true;
+      youThereRenderers.forEach(renderer => {
+        // 1. Onay butonunu bul ve tıkla (click, pointer, mouse eventleri gönder)
+        const confirmBtn = renderer.querySelector<HTMLElement>(
+          "#confirm-button button, #button button, #confirm-button, yt-button-renderer button, tp-yt-paper-button, .confirm-button, button#button, button"
+        );
+        if (confirmBtn) {
+          try {
+            confirmBtn.click();
+            confirmBtn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view: window }));
+            confirmBtn.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, composed: true, view: window }));
+          } catch {
+            /* ignore */
+          }
+        }
+
+        // 2. YouTube Redux / Polymer döngüsünün onayı işlemesine fırsat tanı; ardından dialogu güvenle kapat
+        setTimeout(() => {
+          const parentDialog = renderer.closest<HTMLElement>(
+            "tp-yt-paper-dialog, paper-dialog, ytmusic-popup-container tp-yt-paper-dialog"
+          ) || renderer.parentElement;
+
+          if (parentDialog) {
+            try {
+              if (typeof (parentDialog as any).close === "function") {
+                (parentDialog as any).close();
+              }
+              (parentDialog as any).opened = false;
+              parentDialog.removeAttribute("opened");
+              parentDialog.setAttribute("aria-hidden", "true");
+              parentDialog.style.display = "none";
+            } catch {
+              /* ignore */
+            }
+          }
+
+          try {
+            renderer.style.display = "none";
+            renderer.remove();
+          } catch {
+            /* ignore */
+          }
+        }, 200);
+      });
+    }
+
+    // 3. Ekranda açık ve görünür bir dialog yokken arkada kalan sahipsiz backdrop / overlay karartmalarını temizle
+    const activeDialogs = Array.from(document.querySelectorAll<HTMLElement>("tp-yt-paper-dialog, paper-dialog")).filter(
+      d => d.hasAttribute("opened") && d.style.display !== "none" && !d.querySelector("ytmusic-you-there-renderer, yt-confirm-dialog-renderer")
+    );
+
+    if (activeDialogs.length === 0) {
+      const backdrops = document.querySelectorAll<HTMLElement>("tp-yt-iron-overlay-backdrop, iron-overlay-backdrop");
+      backdrops.forEach(backdrop => {
         try {
-          confirmBtn.click();
-          confirmBtn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+          if (typeof (backdrop as any).close === "function") {
+            (backdrop as any).close();
+          }
+          (backdrop as any).opened = false;
+          backdrop.removeAttribute("opened");
+          backdrop.style.display = "none";
+          backdrop.remove();
         } catch {
           /* ignore */
         }
-      }
+      });
+    }
 
-      // 2. Parent dialog bileşenini (Paper Dialog) kapat ve gizle
-      const parentDialog = renderer.closest<HTMLElement>(
-        "tp-yt-paper-dialog, paper-dialog, ytmusic-popup-container tp-yt-paper-dialog"
-      ) || renderer.parentElement;
-
-      if (parentDialog) {
-        try {
-          if (typeof (parentDialog as any).close === "function") {
-            (parentDialog as any).close();
-          }
-          if (typeof (parentDialog as any).opened !== "undefined") {
-            (parentDialog as any).opened = false;
-          }
-          parentDialog.removeAttribute("opened");
-          parentDialog.setAttribute("aria-hidden", "true");
-          parentDialog.style.display = "none";
-        } catch {
-          /* ignore */
-        }
-      }
-
-      // 3. Renderer'ı DOM'dan temizle
-      try {
-        renderer.style.display = "none";
-        renderer.remove();
-      } catch {
-        /* ignore */
-      }
-    });
-
-    // 4. Açık kalan backdrop / overlay karartmalarını temizle
-    const backdrops = document.querySelectorAll<HTMLElement>("tp-yt-iron-overlay-backdrop, iron-overlay-backdrop");
-    backdrops.forEach(backdrop => {
-      try {
-        if (typeof (backdrop as any).close === "function") {
-          (backdrop as any).close();
-        }
-        (backdrop as any).opened = false;
-        backdrop.removeAttribute("opened");
-        backdrop.style.display = "none";
-        backdrop.remove();
-      } catch {
-        /* ignore */
-      }
-    });
-
-    // 5. Açık kalan ve logonun üzerine binen erişilebilirlik ve ipucu baloncuklarını temizle
+    // 4. Açık kalan ve logonun üzerine binen erişilebilirlik ve ipucu baloncuklarını temizle
     const promoElements = document.querySelectorAll<HTMLElement>(
-      '#skip-navigation, a#skip-navigation, ytmusic-bubble-renderer, yt-bubble-hint-renderer, yt-hint-renderer, ytmusic-hint-renderer'
+      "#skip-navigation, a#skip-navigation, ytmusic-bubble-renderer, yt-bubble-hint-renderer, yt-hint-renderer, ytmusic-hint-renderer"
     );
     promoElements.forEach(el => {
       try {
@@ -446,10 +483,9 @@ async function setupAutoConfirmKeepPlaying() {
       }
     });
 
-    // 6. Duraklatılmış video varsa oynatmayı sürdür
-    const video = document.querySelector<HTMLVideoElement>("video");
-    if (video && video.paused) {
-      video.play().catch(() => {});
+    // 5. Eğer pop-up tespit edildiyse veya duraklatılmışsa oynatmayı sürdür
+    if (popupFound) {
+      resumePlayback();
     }
   }
 
@@ -464,6 +500,7 @@ async function setupAutoConfirmKeepPlaying() {
             if (
               el.tagName?.toLowerCase() === "ytmusic-you-there-renderer" ||
               el.tagName?.toLowerCase() === "yt-confirm-dialog-renderer" ||
+              el.tagName?.toLowerCase() === "tp-yt-iron-overlay-backdrop" ||
               el.querySelector?.("ytmusic-you-there-renderer, yt-confirm-dialog-renderer")
             ) {
               dismissYouTherePopup();
@@ -482,12 +519,16 @@ async function setupAutoConfirmKeepPlaying() {
     console.warn("[ENIXM] You-There MutationObserver başlatılamadı:", e);
   }
 
-  // 2. Pencere odaklandığında veya görünür hale geldiğinde ekranda kalan asılı diyalogları anında temizle
+  // 2. Pencere odaklandığında veya görünür hale geldiğinde ekranda kalan asılı diyalogları temizle (müziği zorla başlatmaz)
   window.addEventListener("focus", () => {
-    if (autoConfirmEnabled) dismissYouTherePopup();
+    if (autoConfirmEnabled) {
+      dismissYouTherePopup();
+    }
   });
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && autoConfirmEnabled) dismissYouTherePopup();
+    if (!document.hidden && autoConfirmEnabled) {
+      dismissYouTherePopup();
+    }
   });
   window.addEventListener("resize", () => {
     if (autoConfirmEnabled) dismissYouTherePopup();
@@ -501,7 +542,6 @@ async function setupAutoConfirmKeepPlaying() {
   }, 500);
 }
 
-
 // YTM store yakalama — Proxy Store Pattern
 // Hemen bir mutable proxy store atanır (hook scriptleri bu referansı alır).
 // Gerçek store (ytmusicReduxBehavior vb.) bulunduğunda proxy delegate güncellenir.
@@ -513,76 +553,56 @@ async function setupAutoConfirmKeepPlaying() {
   await webFrame.executeJavaScript(`
 (function() {
       // ─── BÖLÜM 1: customElements.define intercept ─────────────────────────────
-      // Iframe kullanarak temiz/değiştirilmemiş native CustomElementRegistry.prototype.define metodunu lazy (gerektiğinde) alıyoruz.
-      // Preload başlangıcında document.documentElement null olabileceği için bu işlem çağrıldığı ana ertelenir.
-      let _nativeDefine;
-      function getNativeDefine() {
-        if (_nativeDefine) return _nativeDefine;
+      // ES5 adapter'ın (custom-elements-es5-adapter.js) modern Custom Elements üzerinde
+      // Reflect.construct döngüsüne ve "Maximum call stack size exceeded" hatasına girmesini engellemek için
+      // doğrudan native define fonksiyonunu kullanıyoruz.
+      let _nativeDefine = null;
+      try {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        const parent = document.head || document.documentElement || document.body;
+        if (parent) {
+          parent.appendChild(iframe);
+          _nativeDefine = iframe.contentWindow.CustomElementRegistry.prototype.define;
+          parent.removeChild(iframe);
+          console.debug("[ENIXM] Temiz native define referansi iframe ile alindi.");
+        }
+      } catch (e) {
+        console.warn("[ENIXM] Iframe ile native define alinamadi:", e.message);
+      }
+
+      if (!_nativeDefine && window.customElements) {
+        _nativeDefine = CustomElementRegistry.prototype.define;
+      }
+
+      function safeDefine(name, cls, options) {
         try {
-          const iframe = document.createElement("iframe");
-          iframe.style.display = "none";
-          const parent = document.head || document.documentElement || document.body;
-          if (parent) {
-            parent.appendChild(iframe);
-            _nativeDefine = iframe.contentWindow.CustomElementRegistry.prototype.define;
-            parent.removeChild(iframe);
-            console.debug("[ENIXM] Temiz native define referansi iframe ile alindi.");
+          if (_nativeDefine) {
+            return _nativeDefine.call(customElements, name, cls, options);
           }
         } catch (e) {
-          console.warn("[ENIXM] Iframe ile native define alinamadi, fallback kullaniliyor:", e.message);
+          // Zaten tanımlanmışsa veya başka bir durum varsa yut
         }
-        if (!_nativeDefine) {
-          _nativeDefine = CustomElementRegistry.prototype.define;
+      }
+
+      if (window.customElements) {
+        try {
+          Object.defineProperty(customElements, "define", {
+            get: () => safeDefine,
+            set: () => {
+              // Adapter define'ı ezmeye çalıştığında yoksay, native safeDefine kalmaya devam etsin
+            },
+            configurable: true
+          });
+          Object.defineProperty(CustomElementRegistry.prototype, "define", {
+            get: () => safeDefine,
+            set: () => {},
+            configurable: true
+          });
+        } catch (e) {
+          window.customElements.define = safeDefine;
         }
-        return _nativeDefine;
       }
-
-      const BYPASS_ADAPTER = new Set([
-        "ytmusic-menu-service-item-renderer",
-        "ytmusic-menu-navigation-item-renderer",
-        "ytmusic-toggle-menu-service-item-renderer",
-        "ytmusic-menu-popup-renderer",
-        "ytmusic-menu-renderer"
-      ]);
-
-      function wrapDefine(currentDefine) {
-        return function(name, cls, options) {
-          if (BYPASS_ADAPTER.has(name) || name.startsWith("ytmusic-menu") || name.startsWith("ytmusic-toggle-menu") || name.startsWith("ytmusic-popup")) {
-            console.debug("[ENIXM] Native define kullaniliyor:", name);
-            try {
-              const nd = getNativeDefine();
-              return nd.call(customElements, name, cls, options);
-            } catch (e) {
-              console.warn("[ENIXM] Native define basarisiz, adapter'a donuluyor:", name, e.message);
-              return currentDefine.call(customElements, name, cls, options);
-            }
-          }
-          return currentDefine.call(customElements, name, cls, options);
-        };
-      }
-
-      // 1. Eğer halihazırda define tanımlıysa hemen sarmala
-      if (customElements && customElements.define) {
-        const existingDefine = customElements.define;
-        customElements.define = wrapDefine(existingDefine);
-      }
-
-      // 2. Eğer sonradan biri (adapter gibi) define'ı ezerse diye setter/getter kur
-      let _enixmDefine = customElements.define;
-      try {
-        Object.defineProperty(customElements, "define", {
-          get: () => _enixmDefine,
-          set: (adapterDefine) => {
-            console.debug("[ENIXM] customElements.define degisikligi yakalandi.");
-            _enixmDefine = wrapDefine(adapterDefine);
-          },
-          configurable: true
-        });
-      } catch (e) {
-        console.warn("[ENIXM] customElements.define izlenemedi:", e.message);
-      }
-
-
 
       // Mutable proxy store — delegate sonradan set edilir
       const proxyStore = {
@@ -747,6 +767,87 @@ async function setupAutoConfirmKeepPlaying() {
           console.warn("[ENIXM] 60sn sonra hicbir store bulunamadi. Store ozellikleri calismayabilir.");
         }
       }, 60000);
+
+      // ─── BÖLÜM 3: Proaktif You-There / Inactivity Bekçisi ve Kesintisiz Oynatma ───
+      // YouTube afk zamanlayıcısını (window._lact) canlı tutarak uyarının hiç çıkmamasını sağlıyoruz
+      function touchActivity() {
+        try {
+          window._lact = Date.now();
+          if (window.yt && window.yt.config_) {
+            window.yt.config_.LATEST_ACTIVE_TIME = Date.now();
+          }
+        } catch (e) {}
+      }
+
+      touchActivity();
+      setInterval(touchActivity, 10000); // Her 10 saniyede bir son aktif zamanı tazele
+
+      // Sentetik hafif kullanıcı etkileşimi (her 30 saniyede bir)
+      setInterval(() => {
+        try {
+          touchActivity();
+          const evt = new MouseEvent("mousemove", {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: 1,
+            clientY: 1
+          });
+          window.dispatchEvent(evt);
+        } catch (e) {}
+      }, 30000);
+
+      // Main World seviyesinde buton tıklama, Player API oynatma ve backdrop temizleme bekçisi
+      function checkAndHandleYouThereMainWorld() {
+        try {
+          const youThere = document.querySelector("ytmusic-you-there-renderer, yt-confirm-dialog-renderer");
+          if (youThere) {
+            const btn = youThere.querySelector("#confirm-button button, yt-button-renderer button, #confirm-button, tp-yt-paper-button, button#button, button");
+            if (btn) {
+              btn.click();
+              btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view: window }));
+              btn.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, composed: true, view: window }));
+            }
+            const bar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar");
+            if (bar && bar.playerApi && typeof bar.playerApi.playVideo === "function") {
+              const pState = typeof bar.playerApi.getPlayerState === "function" ? bar.playerApi.getPlayerState() : -1;
+              if (pState === 2) { // 2 = PAUSED
+                bar.playerApi.playVideo();
+              }
+            }
+          }
+
+          // Sahipsiz ve aktif bir dialoga ait olmayan backdrop karartmalarını temizle
+          const activeDialogs = Array.from(document.querySelectorAll("tp-yt-paper-dialog[opened], paper-dialog[opened]")).filter(
+            d => d.style.display !== "none" && !d.querySelector("ytmusic-you-there-renderer, yt-confirm-dialog-renderer")
+          );
+          if (activeDialogs.length === 0) {
+            const backdrops = document.querySelectorAll("tp-yt-iron-overlay-backdrop, iron-overlay-backdrop");
+            backdrops.forEach(b => {
+              if (b.opened || b.getAttribute("opened") !== null || b.classList.contains("opened")) {
+                if (typeof b.close === "function") b.close();
+                b.opened = false;
+                b.removeAttribute("opened");
+                b.style.display = "none";
+                b.remove();
+              }
+            });
+          }
+        } catch (e) {}
+      }
+
+      try {
+        const youThereObserver = new MutationObserver(() => {
+          checkAndHandleYouThereMainWorld();
+        });
+        const target = document.documentElement || document.body;
+        if (target) {
+          youThereObserver.observe(target, { childList: true, subtree: true });
+        }
+      } catch (e) {}
+
+      setInterval(checkAndHandleYouThereMainWorld, 500);
+      console.debug("[ENIXM] Proaktif You-There ve aktivite bekcisi baslatildi.");
     })()
 `);
 })();
@@ -836,51 +937,67 @@ window.addEventListener("load", async () => {
 
   const ensureInitialPause = () => {
     if (!continueWhereYouLeftOffPaused) return;
-    let attempts = 0;
-    let originalMutedState: boolean | null = null;
 
-    const pauseInterval = setInterval(() => {
-      attempts++;
+    let userInteracted = false;
+    let initialPaused = false;
+
+    // Kullanıcı Play tuşuna bastığında veya sayfayla etkileşime girdiğinde initial pause'u tamamen iptal et
+    const onUserInteraction = () => {
+      userInteracted = true;
+      cleanup();
+    };
+
+    window.addEventListener("pointerdown", onUserInteraction, { capture: true, once: true });
+    window.addEventListener("keydown", onUserInteraction, { capture: true, once: true });
+
+    const stopPlayback = () => {
+      if (userInteracted || initialPaused) return;
+
       const video = document.querySelector<HTMLVideoElement>("video");
-      if (video) {
-        if (originalMutedState === null) {
-          originalMutedState = video.muted;
-        }
-        video.muted = true;
-      }
-
       const playerBar = document.querySelector<any>("ytmusic-app-layout ytmusic-player-bar");
+
+      let didPause = false;
+
       if (playerBar && playerBar.playerApi) {
         const pState = playerBar.playerApi.getPlayerState ? playerBar.playerApi.getPlayerState() : -1;
-        if (pState === 1 || pState === 3) { // 1 = PLAYING, 3 = BUFFERING
+        // 1 = PLAYING, 3 = BUFFERING
+        if (pState === 1 || pState === 3) {
           playerBar.playerApi.pauseVideo();
-          if (video && originalMutedState !== null) {
-            video.muted = originalMutedState;
-          }
-          clearInterval(pauseInterval);
-          return;
+          didPause = true;
         }
       }
 
       if (video && !video.paused) {
         video.pause();
-        if (originalMutedState !== null) {
-          video.muted = originalMutedState;
-        }
-        clearInterval(pauseInterval);
-        return;
+        didPause = true;
       }
 
-      if (attempts > 40) { // 8 saniye sonra temizle
-        if (video && originalMutedState !== null) {
-          video.muted = originalMutedState;
-        }
+      if (didPause) {
+        initialPaused = true;
+        cleanup();
+      }
+    };
+
+    const cleanup = () => {
+      if (pauseInterval) {
         clearInterval(pauseInterval);
+        pauseInterval = null;
+      }
+      window.removeEventListener("pointerdown", onUserInteraction, { capture: true });
+      window.removeEventListener("keydown", onUserInteraction, { capture: true });
+    };
+
+    let attempts = 0;
+    let pauseInterval: NodeJS.Timeout | null = setInterval(() => {
+      attempts++;
+      stopPlayback();
+      if (attempts > 30 || initialPaused || userInteracted) {
+        cleanup();
       }
     }, 100);
   };
 
-  if (continueWhereYouLeftOff) {
+      if (continueWhereYouLeftOff) {
     // The last page the user was on is already a page where it will be playing a song from (no point telling YTM to play it again)
     if (!state.lastUrl.startsWith("https://music.youtube.com/watch")) {
       if (state.lastVideoId) {
