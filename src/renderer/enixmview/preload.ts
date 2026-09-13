@@ -278,9 +278,11 @@ function createNavigationMenuArrows() {
   if (!pivotBar) {
     // New YTM UI
     const searchBar = document.querySelector("ytmusic-search-box");
-    const navBar = searchBar.parentNode;
-    navBar.insertBefore(historyForwardElement, searchBar);
-    navBar.insertBefore(historyBackElement, historyForwardElement);
+    if (searchBar && searchBar.parentNode) {
+      const navBar = searchBar.parentNode;
+      navBar.insertBefore(historyForwardElement, searchBar);
+      navBar.insertBefore(historyBackElement, historyForwardElement);
+    }
   } else {
     historyForwardElement.classList.add("pivotbar");
     historyBackElement.classList.add("pivotbar");
@@ -852,82 +854,94 @@ async function setupAutoConfirmKeepPlaying() {
 `);
 })();
 
-window.addEventListener("load", async () => {
-  if (window.location.hostname !== "music.youtube.com") {
-    if (window.location.hostname === "consent.youtube.com" || window.location.hostname === "accounts.google.com") {
+async function initEnixMView() {
+  try {
+    const hostname = window.location.hostname;
+  if (hostname !== "music.youtube.com") {
+    if (
+      hostname === "consent.youtube.com" ||
+      hostname === "consent.google.com" ||
+      hostname.includes("google.") ||
+      hostname.includes("youtube.")
+    ) {
       ipcRenderer.send("enixmView:loaded");
     }
     return;
   }
 
-  await new Promise<void>(resolve => {
-    let count = 0;
-    const interval = setInterval(async () => {
-      count++;
-      let hooked = false;
-      try {
-        hooked = await webFrame.executeJavaScript(`
-          (function() {
-            return !!window.__ENIXM_HOOK__;
-          })()
-        `);
-      } catch (e) {
-        hooked = false;
-      }
+  try {
+    await new Promise<void>(resolve => {
+      let count = 0;
+      const interval = setInterval(async () => {
+        count++;
+        let hooked = false;
+        try {
+          hooked = await webFrame.executeJavaScript(`
+            (function() {
+              return !!window.__ENIXM_HOOK__;
+            })()
+          `);
+        } catch (e) {
+          hooked = false;
+        }
 
-      if (hooked || count > 30) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 250);
-  });
+        if (hooked || count > 12) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 250);
+    });
+  } catch (e) {}
 
-  setupAdSkipper();
-  setupAutoConfirmKeepPlaying();
+  try { setupAdSkipper(); } catch (e) {}
+  try { setupAutoConfirmKeepPlaying(); } catch (e) {}
 
   let materialSymbolsLoaded = false;
-
-  const materialSymbols = createMaterialSymbolsLink();
-  materialSymbols.onload = () => {
+  try {
+    const materialSymbols = createMaterialSymbolsLink();
+    materialSymbols.onload = () => {
+      materialSymbolsLoaded = true;
+    };
+    materialSymbols.onerror = () => {
+      materialSymbolsLoaded = true;
+    };
+    document.head.appendChild(materialSymbols);
+  } catch (e) {
     materialSymbolsLoaded = true;
-  };
-  materialSymbols.onerror = () => {
-    materialSymbolsLoaded = true;
-  };
-  document.head.appendChild(materialSymbols);
+  }
 
-  await new Promise<void>(resolve => {
-    let count = 0;
-    const interval = setInterval(async () => {
-      count++;
-      let playerApiReady = false;
-      try {
-        playerApiReady = (
-          await webFrame.executeJavaScript(`
+  try {
+    await new Promise<void>(resolve => {
+      let count = 0;
+      const interval = setInterval(async () => {
+        count++;
+        let playerApiReady = false;
+        try {
+          playerApiReady = await webFrame.executeJavaScript(`
             (function() {
               const bar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar");
               return !!(bar && bar.playerApi && bar.playerApi.isReady && bar.playerApi.isReady());
             })()
-          `)
-        );
-      } catch (e) {
-        playerApiReady = false;
-      }
+          `);
+        } catch (e) {
+          playerApiReady = false;
+        }
 
-      if ((materialSymbolsLoaded && playerApiReady) || count > 32) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 250);
-  });
+        if ((materialSymbolsLoaded && playerApiReady) || count > 12) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 250);
+    });
+  } catch (e) {}
 
-  createStyleSheet();
-  createNavigationMenuArrows();
-  createKeyboardNavigation();
-  await createAdditionalPlayerBarControls();
-  await hideChromecastButton();
-  await hookPlayerApiEvents();
-  overrideHistoryButtonDisplay();
+  try { createStyleSheet(); } catch (e) { console.warn("[ENIXM] createStyleSheet:", e); }
+  try { createNavigationMenuArrows(); } catch (e) { console.warn("[ENIXM] createNavigationMenuArrows:", e); }
+  try { createKeyboardNavigation(); } catch (e) { console.warn("[ENIXM] createKeyboardNavigation:", e); }
+  try { await createAdditionalPlayerBarControls(); } catch (e) { console.warn("[ENIXM] createAdditionalPlayerBarControls:", e); }
+  try { await hideChromecastButton(); } catch (e) { console.warn("[ENIXM] hideChromecastButton:", e); }
+  try { await hookPlayerApiEvents(); } catch (e) { console.warn("[ENIXM] hookPlayerApiEvents:", e); }
+  try { overrideHistoryButtonDisplay(); } catch (e) { console.warn("[ENIXM] overrideHistoryButtonDisplay:", e); }
 
   const integrationScripts: { [integrationName: string]: { [scriptName: string]: string } } = await ipcRenderer.invoke("enixmView:getIntegrationScripts");
 
@@ -1050,10 +1064,12 @@ window.addEventListener("load", async () => {
     }
   }
 
-  const alwaysShowVolumeSlider = (await store.get("appearance")).alwaysShowVolumeSlider;
-  if (alwaysShowVolumeSlider) {
-    document.querySelector("ytmusic-app-layout>ytmusic-player-bar #volume-slider").classList.add("enixm-persist-volume-slider");
-  }
+  try {
+    const alwaysShowVolumeSlider = (await store.get("appearance"))?.alwaysShowVolumeSlider;
+    if (alwaysShowVolumeSlider) {
+      document.querySelector("ytmusic-app-layout>ytmusic-player-bar #volume-slider")?.classList?.add("enixm-persist-volume-slider");
+    }
+  } catch (e) {}
 
   ipcRenderer.on("remoteControl:execute", async (_event, command, value) => {
     switch (command) {
@@ -1315,17 +1331,19 @@ window.addEventListener("load", async () => {
   });
 
   store.onDidAnyChange(newState => {
-    if (newState.appearance.alwaysShowVolumeSlider) {
+    try {
       const volumeSlider = document.querySelector("#volume-slider");
-      if (!volumeSlider.classList.contains("enixm-persist-volume-slider")) {
-        volumeSlider.classList.add("enixm-persist-volume-slider");
+      if (!volumeSlider) return;
+      if (newState?.appearance?.alwaysShowVolumeSlider) {
+        if (!volumeSlider.classList.contains("enixm-persist-volume-slider")) {
+          volumeSlider.classList.add("enixm-persist-volume-slider");
+        }
+      } else {
+        if (volumeSlider.classList.contains("enixm-persist-volume-slider")) {
+          volumeSlider.classList.remove("enixm-persist-volume-slider");
+        }
       }
-    } else {
-      const volumeSlider = document.querySelector("#volume-slider");
-      if (volumeSlider.classList.contains("enixm-persist-volume-slider")) {
-        volumeSlider.classList.remove("enixm-persist-volume-slider");
-      }
-    }
+    } catch (e) {}
   });
 
   ipcRenderer.on("enixmView:refitPopups", async () => {
@@ -1358,4 +1376,32 @@ window.addEventListener("load", async () => {
   });
 
   ipcRenderer.send("enixmView:loaded");
-});
+  } catch (err) {
+    console.error("[ENIXM] initEnixMView genel hata:", err);
+    ipcRenderer.send("enixmView:loaded");
+  }
+}
+
+let hasInitTriggered = false;
+function triggerInit() {
+  if (hasInitTriggered) return;
+  hasInitTriggered = true;
+  initEnixMView().catch(err => {
+    console.error("[ENIXM] triggerInit hatasi:", err);
+    ipcRenderer.send("enixmView:loaded");
+  });
+}
+
+if (document.readyState === "complete" || document.readyState === "interactive") {
+  triggerInit();
+} else {
+  window.addEventListener("DOMContentLoaded", triggerInit, { once: true });
+  window.addEventListener("load", triggerInit, { once: true });
+}
+
+// Guvenlik zaman asimi: Ne olursa olsun en gec 4 saniye sonra triggerInit calissin
+setTimeout(() => {
+  if (!hasInitTriggered) {
+    triggerInit();
+  }
+}, 4000);

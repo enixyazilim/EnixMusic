@@ -1,87 +1,159 @@
-(function() {
-  const enixmStore = window.__ENIXM_HOOK__.enixmStore;
+(function () {
+  try {
+    const enixmStore = window.__ENIXM_HOOK__?.enixmStore;
 
-  function sendStoreState() {
-    // We don't want to see everything in the store as there can be some sensitive data so we only send what's necessary to operate
-    let state = enixmStore.getState();
+    function sendStoreState() {
+      try {
+        if (!enixmStore) return;
+        const state = enixmStore.getState() || {};
 
-    const videoId = document.querySelector("ytmusic-app-layout>ytmusic-player-bar").playerApi.getPlayerResponse()?.videoDetails?.videoId;
-    const likeButtonData = document.querySelector("ytmusic-app-layout>ytmusic-player-bar").querySelector("ytmusic-like-button-renderer").data;
-    const defaultLikeStatus = likeButtonData?.likeStatus ?? "UNKNOWN";
-    const storeLikeStatus = state.likeStatus.videos[videoId];
-    
-    const likeStatus = storeLikeStatus ? state.likeStatus.videos[videoId] : defaultLikeStatus;
-    const volume = state.player.volume;
-    const adPlaying = state.player.adPlaying;
-    const muted = state.player.muted;
+        const playerBar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar");
+        const playerResponse = playerBar?.playerApi?.getPlayerResponse?.();
+        const videoId = playerResponse?.videoDetails?.videoId;
 
-    window.enixm.sendStoreUpdate(state.queue, likeStatus, volume, muted, adPlaying);
-  }
+        const likeButton = playerBar?.querySelector?.("ytmusic-like-button-renderer");
+        const defaultLikeStatus = likeButton?.data?.likeStatus ?? "UNKNOWN";
+        const storeLikeStatus = videoId && state?.likeStatus?.videos ? state.likeStatus.videos[videoId] : null;
 
-  document.querySelector("ytmusic-app-layout>ytmusic-player-bar").playerApi.addEventListener("onVideoProgress", progress => {
-    window.enixm.sendVideoProgress(progress);
-  });
-  document.querySelector("ytmusic-app-layout>ytmusic-player-bar").playerApi.addEventListener("onStateChange", state => {
-    window.enixm.sendVideoState(state);
-  });
-  document.querySelector("ytmusic-app-layout>ytmusic-player-bar").playerApi.addEventListener("onVideoDataChange", event => {
-    if (event.playertype === 1 && (event.type === "dataloaded" || event.type === "dataupdated")) {
-      let videoDetails = document.querySelector("ytmusic-app-layout>ytmusic-player-bar").playerApi.getPlayerResponse().videoDetails;
-      let playlistId = document.querySelector("ytmusic-app-layout>ytmusic-player-bar").playerApi.getPlaylistId();
-      let album = null;
-      let hasFullMetadata = false;
+        const likeStatus = storeLikeStatus ? storeLikeStatus : defaultLikeStatus;
+        const volume = state?.player?.volume ?? 0;
+        const adPlaying = !!state?.player?.adPlaying;
+        const muted = !!state?.player?.muted;
 
-      // If playing from online sources this usually is filled out with the first dataupdated which is followed after dataloaded. While offline this is always filled
-      let currentItem = document.querySelector("ytmusic-app-layout>ytmusic-player-bar").currentItem;
-      if (currentItem !== null && currentItem !== undefined) {
-        hasFullMetadata = true;
+        if (window.enixm?.sendStoreUpdate) {
+          window.enixm.sendStoreUpdate(state.queue, likeStatus, volume, muted, adPlaying);
+        }
+      } catch (err) {
+        console.warn("[ENIXM] sendStoreState hatasi:", err);
+      }
+    }
 
-        // Fill out video details with better information
-        videoDetails.title = currentItem.title.runs.map(v => v.text).join(""); // Can contain featuring text which isn't in player response
-        videoDetails.thumbnail = currentItem.thumbnail; // Can contain more thumbnails than player response
+    let isHooked = false;
 
-        for (let i = 0; i < currentItem.longBylineText.runs.length; i++) {
-          const item = currentItem.longBylineText.runs[i];
-          if (item.navigationEndpoint) {
-            if (item.navigationEndpoint.browseEndpoint.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType === "MUSIC_PAGE_TYPE_ALBUM") {
-              album = {
-                id: item.navigationEndpoint.browseEndpoint.browseId,
-                text: item.text
+    function tryHookPlayerApi() {
+      if (isHooked) return true;
+
+      try {
+        const playerBar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar");
+        if (!playerBar || !playerBar.playerApi || typeof playerBar.playerApi.addEventListener !== "function") {
+          return false;
+        }
+
+        const playerApi = playerBar.playerApi;
+
+        playerApi.addEventListener("onVideoProgress", progress => {
+          try {
+            window.enixm?.sendVideoProgress(progress);
+          } catch (e) {}
+        });
+
+        playerApi.addEventListener("onStateChange", state => {
+          try {
+            window.enixm?.sendVideoState(state);
+          } catch (e) {}
+        });
+
+        playerApi.addEventListener("onVideoDataChange", event => {
+          try {
+            if (event?.playertype === 1 && (event?.type === "dataloaded" || event?.type === "dataupdated")) {
+              const resp = playerApi.getPlayerResponse?.();
+              let videoDetails = resp?.videoDetails;
+              if (!videoDetails) return;
+
+              let playlistId = typeof playerApi.getPlaylistId === "function" ? playerApi.getPlaylistId() : "";
+              let album = null;
+              let hasFullMetadata = false;
+
+              let currentItem = playerBar.currentItem;
+              if (currentItem !== null && currentItem !== undefined) {
+                hasFullMetadata = true;
+
+                if (Array.isArray(currentItem.title?.runs)) {
+                  videoDetails.title = currentItem.title.runs.map(v => v.text).join("");
+                }
+                if (currentItem.thumbnail) {
+                  videoDetails.thumbnail = currentItem.thumbnail;
+                }
+
+                const runs = currentItem.longBylineText?.runs;
+                if (Array.isArray(runs)) {
+                  for (let i = 0; i < runs.length; i++) {
+                    const item = runs[i];
+                    if (item?.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType === "MUSIC_PAGE_TYPE_ALBUM") {
+                      album = {
+                        id: item.navigationEndpoint.browseEndpoint.browseId,
+                        text: item.text
+                      };
+                      break;
+                    }
+                  }
+                }
               }
+
+              const state = enixmStore?.getState?.() || {};
+              const likeButtonData = playerBar.querySelector?.("ytmusic-like-button-renderer")?.data;
+              const defaultLikeStatus = likeButtonData?.likeStatus ?? "UNKNOWN";
+              const storeLikeStatus = state?.likeStatus?.videos?.[videoDetails.videoId];
+              const likeStatus = storeLikeStatus ? storeLikeStatus : defaultLikeStatus;
+
+              window.enixm?.sendVideoData(videoDetails, playlistId, album, likeStatus, hasFullMetadata);
+            }
+          } catch (err) {
+            console.warn("[ENIXM] onVideoDataChange hatasi:", err);
+          }
+        });
+
+        isHooked = true;
+        console.debug("[ENIXM] PlayerApi basariyla hooklandi.");
+        return true;
+      } catch (err) {
+        console.warn("[ENIXM] tryHookPlayerApi hatasi:", err);
+        return false;
+      }
+    }
+
+    // İlk deneme
+    if (!tryHookPlayerApi()) {
+      let attempts = 0;
+      const hookInterval = setInterval(() => {
+        attempts++;
+        if (tryHookPlayerApi() || attempts > 60) {
+          clearInterval(hookInterval);
+        }
+      }, 500);
+    }
+
+    if (enixmStore?.subscribe) {
+      enixmStore.subscribe(() => {
+        sendStoreState();
+      });
+    }
+
+    window.addEventListener("yt-action", e => {
+      try {
+        if (!e?.detail) return;
+        if (e.detail.actionName === "yt-service-request") {
+          if (e.detail.args?.[1]?.createPlaylistServiceEndpoint) {
+            const title = e.detail.args[2]?.create_playlist_title;
+            const returnValue = e.detail.returnValue;
+            if (returnValue?.[0]?.ajaxPromise) {
+              returnValue[0].ajaxPromise.then(response => {
+                const id = response?.data?.playlistId;
+                window.enixm?.sendCreatePlaylistObservation({ title, id });
+              }).catch(() => {});
             }
           }
+        } else if (e.detail.actionName === "yt-handle-playlist-deletion-command") {
+          const playlistId = e.detail.args?.[0]?.handlePlaylistDeletionCommand?.playlistId;
+          if (playlistId) {
+            window.enixm?.sendDeletePlaylistObservation(playlistId);
+          }
         }
+      } catch (err) {
+        console.warn("[ENIXM] yt-action handler hatasi:", err);
       }
-
-      let state = enixmStore.getState();
-      const likeButtonData = document.querySelector("ytmusic-app-layout>ytmusic-player-bar").querySelector("ytmusic-like-button-renderer").data;
-      const defaultLikeStatus = likeButtonData?.likeStatus ?? "UNKNOWN";
-      const storeLikeStatus = state.likeStatus.videos[videoDetails.videoId];
-      
-      const likeStatus = storeLikeStatus ? state.likeStatus.videos[videoDetails.videoId] : defaultLikeStatus;
-
-      window.enixm.sendVideoData(videoDetails, playlistId, album, likeStatus, hasFullMetadata);
-    }
-  });
-  enixmStore.subscribe(() => {
-    sendStoreState();
-  });
-  window.addEventListener("yt-action", e => {
-    if (e.detail.actionName === "yt-service-request") {
-      if (e.detail.args[1].createPlaylistServiceEndpoint) {
-        let title = e.detail.args[2].create_playlist_title;
-        let returnValue = e.detail.returnValue;
-        returnValue[0].ajaxPromise.then(response => {
-          let id = response.data.playlistId;
-          window.enixm.sendCreatePlaylistObservation({
-            title,
-            id
-          });
-        });
-      }
-    } else if (e.detail.actionName === "yt-handle-playlist-deletion-command") {
-      let playlistId = e.detail.args[0].handlePlaylistDeletionCommand.playlistId;
-      window.enixm.sendDeletePlaylistObservation(playlistId);
-    }
-  });
-})
+    });
+  } catch (outerErr) {
+    console.warn("[ENIXM] hookplayerapievents genel hata:", outerErr);
+  }
+})();

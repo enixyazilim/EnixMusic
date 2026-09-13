@@ -29,7 +29,7 @@ import fetch from "cross-fetch";
 import MemoryStore from "./memory-store";
 import playerStateStore, { PlayerState, VideoState } from "./player-state-store";
 import { MemoryStoreSchema, StoreSchema, TrayIconStyle } from "../shared/store/schema";
-import { getLocale, Language } from "../shared/locales";
+import { getLocale, detectLanguage, Language } from "../shared/locales";
 
 import CompanionServer from "./integrations/companion-server";
 import CustomCSS from "./integrations/custom-css";
@@ -200,6 +200,7 @@ if (!gotTheLock) {
         mainWindow.restore();
       }
       mainWindow.focus();
+      refreshThumbar();
     }
 
     handleProtocol(commandLine[commandLine.length - 1]);
@@ -340,6 +341,15 @@ function anyShortcutChanged(newState: Readonly<StoreSchema>, oldState: Readonly<
   return false;
 }
 
+function getInitialLanguage(): Language {
+  try {
+    const sysLocale = app.getLocale() || "";
+    return detectLanguage(sysLocale);
+  } catch (e) {
+    return "en";
+  }
+}
+
 // Create the persistent config store
 const store = new Conf<StoreSchema>({
   configName: "config",
@@ -351,7 +361,7 @@ const store = new Conf<StoreSchema>({
       version: 1
     },
     general: {
-      language: "en" as Language,
+      language: getInitialLanguage(),
       disableHardwareAcceleration: false,
       hideToTrayOnClose: false,
       showNotificationOnSongChange: false,
@@ -450,6 +460,8 @@ function updateTrayMenu() {
             mainWindow.hide();
           } else {
             mainWindow.show();
+            mainWindow.focus();
+            refreshThumbar();
           }
         }
       }
@@ -650,60 +662,49 @@ stateSaverInterval = setInterval(
 );
 
 let lastPlayerState: PlayerState | null = null;
+let thumbarIconsCache: {
+  previous: Electron.NativeImage;
+  play: Electron.NativeImage;
+  pause: Electron.NativeImage;
+  next: Electron.NativeImage;
+} | null = null;
 
-function updateThumbarButtons(state: PlayerState) {
+function getThumbarIcons() {
+  if (!thumbarIconsCache) {
+    thumbarIconsCache = {
+      previous: nativeImage.createFromPath(getControlsIconPath("play-previous-button.png")),
+      play: nativeImage.createFromPath(getControlsIconPath("play-button.png")),
+      pause: nativeImage.createFromPath(getControlsIconPath("pause-button.png")),
+      next: nativeImage.createFromPath(getControlsIconPath("play-next-button.png"))
+    };
+  }
+  return thumbarIconsCache;
+}
+
+let lastThumbarState: { hasVideo: boolean; isPlaying: boolean } | null = null;
+
+function updateThumbarButtons(state: PlayerState | null, force = false) {
   if (!mainWindow || mainWindow.isDestroyed() || process.platform !== "win32") return;
-  const hasVideo = !!state.videoDetails;
-  const isPlaying = state.trackState === VideoState.Playing;
-  const taskbarFlags: string[] = [];
+  const icons = getThumbarIcons();
+  const hasVideo = !!state?.videoDetails;
+  const isPlaying = state?.trackState === VideoState.Playing;
+
+  if (!force && lastThumbarState && lastThumbarState.hasVideo === hasVideo && lastThumbarState.isPlaying === isPlaying) {
+    return;
+  }
+  lastThumbarState = { hasVideo, isPlaying };
+
+  const taskbarFlags: ("disabled" | "dismisstranself" | "nobackground" | "noninteractive")[] = [];
   if (!hasVideo) {
     taskbarFlags.push("disabled");
   }
 
-  mainWindow.setThumbarButtons([
-    {
-      tooltip: "Previous",
-      icon: nativeImage.createFromPath(getControlsIconPath("play-previous-button.png")),
-      flags: taskbarFlags,
-      click() {
-        if (enixmView) {
-          enixmView.webContents.send("remoteControl:execute", "previous");
-        }
-      }
-    },
-    {
-      tooltip: "Play/Pause",
-      icon: isPlaying
-        ? nativeImage.createFromPath(getControlsIconPath("pause-button.png"))
-        : nativeImage.createFromPath(getControlsIconPath("play-button.png")),
-      flags: taskbarFlags,
-      click() {
-        if (enixmView) {
-          enixmView.webContents.send("remoteControl:execute", "playPause");
-        }
-      }
-    },
-    {
-      tooltip: "Next",
-      icon: nativeImage.createFromPath(getControlsIconPath("play-next-button.png")),
-      flags: taskbarFlags,
-      click() {
-        if (enixmView) {
-          enixmView.webContents.send("remoteControl:execute", "next");
-        }
-      }
-    }
-  ]);
-}
-
-function setupTaskbarFeatures() {
-  // Setup Initial Taskbar Icons
-  if (mainWindow && !mainWindow.isDestroyed() && process.platform === "win32") {
+  try {
     mainWindow.setThumbarButtons([
       {
         tooltip: "Previous",
-        icon: nativeImage.createFromPath(getControlsIconPath("play-previous-button.png")),
-        flags: ["disabled"],
+        icon: icons.previous,
+        flags: taskbarFlags,
         click() {
           if (enixmView) {
             enixmView.webContents.send("remoteControl:execute", "previous");
@@ -711,9 +712,9 @@ function setupTaskbarFeatures() {
         }
       },
       {
-        tooltip: "Play/Pause",
-        icon: nativeImage.createFromPath(getControlsIconPath("play-button.png")),
-        flags: ["disabled"],
+        tooltip: isPlaying ? "Pause" : "Play",
+        icon: isPlaying ? icons.pause : icons.play,
+        flags: taskbarFlags,
         click() {
           if (enixmView) {
             enixmView.webContents.send("remoteControl:execute", "playPause");
@@ -722,8 +723,8 @@ function setupTaskbarFeatures() {
       },
       {
         tooltip: "Next",
-        icon: nativeImage.createFromPath(getControlsIconPath("play-next-button.png")),
-        flags: ["disabled"],
+        icon: icons.next,
+        flags: taskbarFlags,
         click() {
           if (enixmView) {
             enixmView.webContents.send("remoteControl:execute", "next");
@@ -731,15 +732,27 @@ function setupTaskbarFeatures() {
         }
       }
     ]);
+  } catch (err) {
+    log.warn("Failed to set thumbar buttons:", err);
+  }
+}
+
+function refreshThumbar() {
+  if (!mainWindow || mainWindow.isDestroyed() || process.platform !== "win32") return;
+  const apply = () => {
+    updateThumbarButtons(lastPlayerState, true);
+  };
+  apply();
+  setTimeout(apply, 150);
+  setTimeout(apply, 500);
+}
+
+function setupTaskbarFeatures() {
+  if (mainWindow && !mainWindow.isDestroyed() && process.platform === "win32") {
+    refreshThumbar();
   }
 
-  // Window show / restore event'lerinde thumbar ikonlarını tazele
   if (mainWindow && process.platform === "win32") {
-    const refreshThumbar = () => {
-      if (lastPlayerState) {
-        updateThumbarButtons(lastPlayerState);
-      }
-    };
     mainWindow.on("show", refreshThumbar);
     mainWindow.on("restore", refreshThumbar);
     mainWindow.on("focus", refreshThumbar);
@@ -751,7 +764,7 @@ function setupTaskbarFeatures() {
     const isPlaying = state.trackState === VideoState.Playing;
 
     if (process.platform === "win32") {
-      updateThumbarButtons(state);
+      updateThumbarButtons(state, false);
     }
 
     if (mainWindow && store.get("playback.progressInTaskbar")) {
@@ -1102,6 +1115,7 @@ function urlIsGoogleAccountsDomain(url: URL): boolean {
 function isPreventedNavOrRedirect(url: URL): boolean {
   return (
     url.hostname !== "consent.youtube.com" &&
+    url.hostname !== "consent.google.com" &&
     url.hostname !== "accounts.youtube.com" &&
     url.hostname !== "music.youtube.com" &&
     !(
@@ -1112,7 +1126,49 @@ function isPreventedNavOrRedirect(url: URL): boolean {
   );
 }
 
+let isEnixMViewAttached = false;
+
+function attachEnixMView() {
+  if (isEnixMViewAttached || !enixmView || !mainWindow || mainWindow.isDestroyed()) return;
+  isEnixMViewAttached = true;
+  memoryStore.set("enixmViewLoading", false);
+  if (enixmViewLoadTimeout) {
+    clearTimeout(enixmViewLoadTimeout);
+    enixmViewLoadTimeout = null;
+  }
+  mainWindow.addBrowserView(enixmView);
+  if (mainWindow.isFullScreen()) {
+    enixmView.setBounds({
+      x: 0,
+      y: 0,
+      width: mainWindow.getContentBounds().width,
+      height: mainWindow.getContentBounds().height
+    });
+  } else {
+    enixmView.setBounds({
+      x: 0,
+      y: 36,
+      width: mainWindow.getContentBounds().width,
+      height: mainWindow.getContentBounds().height - 36
+    });
+  }
+  if (process.env.NODE_ENV === "development") {
+    enixmView.webContents.openDevTools({
+      mode: "detach"
+    });
+  }
+
+  try {
+    ratioVolume.enixmViewLoaded();
+    customCss.updateCSS();
+  } catch (e) {
+    log.warn("Integration update on view load error:", e);
+  }
+  log.info("EnixM View successfully attached to mainWindow");
+}
+
 const createEnixMView = (): void => {
+  isEnixMViewAttached = false;
   memoryStore.set("enixmViewLoadTimedout", false);
   memoryStore.set("enixmViewLoading", true);
   memoryStore.set("enixmViewLoadingStatus", getLoadingLocale().starting);
@@ -1263,6 +1319,27 @@ const createEnixMView = (): void => {
     }
   });
 
+  enixmView.webContents.on("dom-ready", () => {
+    setTimeout(() => {
+      if (!isEnixMViewAttached) {
+        log.info("EnixM View dom-ready fallback attaching view");
+        attachEnixMView();
+      }
+    }, 2000);
+  });
+
+  enixmView.webContents.on("did-finish-load", () => {
+    const url = enixmView.webContents.getURL();
+    if (url.startsWith("https://music.youtube.com/")) {
+      setTimeout(() => {
+        if (!isEnixMViewAttached) {
+          log.info("EnixM View did-finish-load fallback attaching view");
+          attachEnixMView();
+        }
+      }, 1000);
+    }
+  });
+
   enixmView.webContents.on("did-fail-load", (_event, errorCode, errorDescription, _validatedURL, isMainFrame) => {
     if (isMainFrame) {
       if (enixmViewLoadTimeout) clearTimeout(enixmViewLoadTimeout);
@@ -1294,7 +1371,11 @@ const createEnixMView = (): void => {
 
   enixmViewLoadTimeout = setTimeout(() => {
     memoryStore.set("enixmViewLoadTimedout", true);
-  }, 30 * 1000);
+    if (!isEnixMViewAttached) {
+      log.warn("EnixM View load timeout fallback attaching view");
+      attachEnixMView();
+    }
+  }, 10 * 1000);
 };
 
 const createMainWindow = (): void => {
@@ -1433,8 +1514,10 @@ app.on("ready", async () => {
   log.info("Application ready");
 
   try {
-    activeAdblocker = await ElectronBlocker.fromPrebuiltAdsAndTracking(fetch);
-    if (store.get("general").adblockerEnabled) {
+    const adblockerPromise = ElectronBlocker.fromPrebuiltAdsAndTracking(fetch);
+    const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Adblocker download timed out")), 5000));
+    activeAdblocker = await Promise.race([adblockerPromise, timeoutPromise]);
+    if (activeAdblocker && store.get("general").adblockerEnabled) {
       activeAdblocker.enableBlockingInSession(session.fromPartition(app.isPackaged ? "persist:enixmview" : "persist:enixmview-dev"));
       log.info("Adblocker has been successfully initialized and attached to the session.");
     } else {
@@ -1452,6 +1535,10 @@ app.on("ready", async () => {
     // This is the first run of the program
     const firstRunTouch = await fs.open(firstRunPath, "a");
     await firstRunTouch.close();
+
+    const initialLang = getInitialLanguage();
+    store.set("general.language", initialLang);
+    log.info(`First run: Automatically selected system language: ${initialLang}`);
 
     const v1ConfigPath = path.join(app.getPath("userData"), "..", "youtube-music-desktop-app", "config.json");
     try {
@@ -1670,26 +1757,7 @@ app.on("ready", async () => {
   ipcMain.on("enixmView:loaded", event => {
     if (enixmView !== null && mainWindow !== null) {
       if (event.sender !== enixmView.webContents) return;
-
-      memoryStore.set("enixmViewLoading", false);
-      clearTimeout(enixmViewLoadTimeout);
-      mainWindow.addBrowserView(enixmView);
-      enixmView.setBounds({
-        x: 0,
-        y: 36,
-        width: mainWindow.getContentBounds().width,
-        height: mainWindow.getContentBounds().height - 36
-      });
-      if (process.env.NODE_ENV === "development") {
-        enixmView.webContents.openDevTools({
-          mode: "detach"
-        });
-      }
-
-      // TODO: this is just a hack fix for ratio volume to run the enable script
-      ratioVolume.enixmViewLoaded();
-      // TODO: this is just a hack fix for custom css to update CSS when the view loads
-      customCss.updateCSS();
+      attachEnixMView();
     }
   });
 
@@ -1918,6 +1986,8 @@ app.on("ready", async () => {
       } else {
         mainWindow.show();
       }
+      mainWindow.focus();
+      refreshThumbar();
     }
   });
 

@@ -50,9 +50,9 @@ export default class CompanionServer implements IIntegration {
         return this.memoryStore;
       }
     });
-    this.fastifyServer.setErrorHandler((error, request, reply) => {
+    this.fastifyServer.setErrorHandler((error: any, request, reply) => {
       if (!isDefinedAPIError(error)) {
-        if (!error.statusCode || error.statusCode >= 500) {
+        if (!error?.statusCode || error.statusCode >= 500) {
           log.error(error);
           reply.send(new Error("An internal server error occurred"));
           return;

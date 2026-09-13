@@ -17,4 +17,13 @@ export function getLocale(language?: Language | string): TranslationSchema {
   return en;
 }
 
+export function detectLanguage(localeStr?: string): Language {
+  if (!localeStr) return "en";
+  const lower = localeStr.toLowerCase();
+  if (lower.startsWith("tr")) {
+    return "tr";
+  }
+  return "en";
+}
+
 export { tr, en };

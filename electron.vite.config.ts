@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import vue from '@vitejs/plugin-vue';
 import { execSync } from 'node:child_process';

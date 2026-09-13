@@ -1,7 +1,7 @@
 {
   "name": "enix-music",
   "productName": "Enix Music",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Enix Music - Modern YouTube Music Desktop Client",
   "homepage": "https://github.com/enixyazilim/EnixMusic",
   "repository": {
@@ -29,8 +29,8 @@
     "@electron/fuses": "^2.0.0",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/node": "^22.19.11",
-    "@typescript-eslint/eslint-plugin": "^8.55.0",
-    "@typescript-eslint/parser": "^8.55.0",
+    "@typescript-eslint/eslint-plugin": "^8.70.0",
+    "@typescript-eslint/parser": "^8.70.0",
     "@vitejs/plugin-vue": "^5.2.4",
     "electron": "^40.4.0",
     "electron-builder": "^26.15.3",
@@ -42,29 +42,29 @@
     "eslint-plugin-vue": "^9.33.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
-    "prettier": "3.8.1",
-    "resedit": "^3.0.2",
+    "prettier": "^3.9.6",
+    "resedit": "^3.1.0",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.3",
     "vite": "^5.4.21"
   },
   "dependencies": {
-    "@fastify/cors": "^11.2.0",
+    "@fastify/cors": "^11.3.0",
     "@fastify/error": "^4.2.0",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/type-provider-typebox": "^5.2.0",
-    "@ghostery/adblocker-electron": "^2.18.1",
-    "@sinclair/typebox": "^0.34.48",
+    "@ghostery/adblocker-electron": "^2.18.2",
+    "@sinclair/typebox": "^0.34.52",
     "conf": "^10.2.0",
     "cross-fetch": "^4.1.0",
-    "electron-log": "5.4.3",
+    "electron-log": "^5.4.4",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.8.9",
-    "fastify": "^5.7.4",
+    "fastify": "^5.12.4",
     "fastify-socket.io": "^5.1.0",
     "material-symbols": "^0.12.0",
     "socket.io": "^4.8.3",
-    "vue": "^3.5.28"
+    "vue": "^3.5.42"
   },
   "lint-staged": {
     "*.{ts,tsx,vue}": [
