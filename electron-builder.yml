@@ -24,6 +24,7 @@ extraResources:
 win:
   target: nsis
   icon: src/assets/icons/enixmusic.ico
+  artifactName: "Enix-Music-Setup-${version}.${ext}"
 nsis:
   oneClick: false
   perMachine: false
