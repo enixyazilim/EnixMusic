@@ -1,18 +1,25 @@
-// @ts-nocheck
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import vue from '@vitejs/plugin-vue';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
-if (!process.stdout.clearLine) process.stdout.clearLine = () => true;
-if (!process.stdout.cursorTo) process.stdout.cursorTo = () => true;
-if (!process.stdout.moveCursor) process.stdout.moveCursor = () => true;
+
+const stdout = process.stdout as typeof process.stdout & {
+  clearLine?: (dir: -1 | 0 | 1, callback?: () => void) => boolean;
+  cursorTo?: (x: number, y?: number, callback?: () => void) => boolean;
+  moveCursor?: (dx: number, dy: number, callback?: () => void) => boolean;
+};
+if (!stdout.clearLine) stdout.clearLine = () => true;
+if (!stdout.cursorTo) stdout.cursorTo = () => true;
+if (!stdout.moveCursor) stdout.moveCursor = () => true;
 
 let gitBranch = 'HEAD';
 let gitCommitHash = 'unknown';
 try {
   gitBranch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
   gitCommitHash = execSync('git rev-parse HEAD').toString().trim();
-} catch (e) {}
+} catch {
+  // Git details not available in this environment
+}
 
 // Custom plugin to remove crossorigin from script tags
 const removeCrossOriginPlugin = () => {

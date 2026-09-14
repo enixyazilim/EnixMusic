@@ -43,7 +43,9 @@ export const en: typeof tr = {
       auto: "Auto",
       white: "White",
       black: "Black"
-    }
+    },
+    mouseWheelVolume: "Mouse wheel volume control",
+    mouseWheelVolumeDesc: "Allows you to easily and precisely adjust volume by scrolling the mouse wheel over the player"
   },
   playback: {
     continueWhereYouLeftOff: "Continue where you left off",
@@ -57,7 +59,13 @@ export const en: typeof tr = {
     ratioVolume: "Precision Decibel Volume Control (Logarithmic)",
     ratioVolumeDesc: "Adjusts volume scaling proportionally according to human hearing perception (Decibel scale)",
     autoConfirmKeepPlaying: "Auto-confirm 'Still Watching / Keep Playing'",
-    autoConfirmKeepPlayingDesc: "Automatically bypasses YouTube's inactivity confirmation prompt and prevents playback from stopping"
+    autoConfirmKeepPlayingDesc: "Automatically bypasses YouTube's inactivity confirmation prompt and prevents playback from stopping",
+    audioOnlyMode: "Audio-Only Mode (Hide Video & Save Bandwidth)",
+    audioOnlyModeDesc: "Hides video rendering and disables video stream decoding to minimize CPU, GPU, and internet data consumption",
+    skipDislikedSongs: "Auto-skip disliked songs",
+    skipDislikedSongsDesc: "Automatically skips to the next track if a song you previously disliked starts playing",
+    skipSilences: "Skip intro and outro silences",
+    skipSilencesDesc: "Skips silent padding at the beginning or end of tracks and jumps directly to where the music begins"
   },
   integrations: {
     companionServer: "Companion Server (Mobile Remote Control)",

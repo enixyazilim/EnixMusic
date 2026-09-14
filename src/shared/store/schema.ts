@@ -23,6 +23,7 @@ export type StoreSchema = {
     customCSSPath: string | null;
     zoom: number;
     trayIconStyle: TrayIconStyle;
+    mouseWheelVolume: boolean;
   };
   playback: {
     continueWhereYouLeftOff: boolean;
@@ -31,6 +32,9 @@ export type StoreSchema = {
     progressInTaskbar: boolean;
     ratioVolume: boolean;
     autoConfirmKeepPlaying: boolean;
+    audioOnlyMode: boolean;
+    skipDislikedSongs: boolean;
+    skipSilences: boolean;
   };
   integrations: {
     companionServerEnabled: boolean;

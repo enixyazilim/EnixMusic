@@ -30,7 +30,88 @@
 
     let isHooked = false;
 
+    function hookVideoElement() {
+      try {
+        const video = document.querySelector("video");
+        if (!video || video.__enixm_hooked) return;
+        video.__enixm_hooked = true;
+
+        const updateFromVideo = () => {
+          try {
+            if (!video.paused && !video.ended) {
+              window.enixm?.sendVideoState(1); // 1 = Playing
+            } else if (video.paused) {
+              window.enixm?.sendVideoState(2); // 2 = Paused
+            }
+          } catch (e) {}
+        };
+
+        video.addEventListener("play", updateFromVideo);
+        video.addEventListener("playing", updateFromVideo);
+        video.addEventListener("pause", updateFromVideo);
+        video.addEventListener("ended", () => {
+          try {
+            window.enixm?.sendVideoState(0);
+          } catch (e) {}
+        });
+
+        updateFromVideo();
+      } catch (err) {
+        console.warn("[ENIXM] hookVideoElement hatasi:", err);
+      }
+    }
+
+    function sendCurrentVideoData(playerBar, playerApi) {
+      try {
+        const resp = playerApi?.getPlayerResponse?.();
+        let videoDetails = resp?.videoDetails;
+        if (!videoDetails) return;
+
+        let playlistId = typeof playerApi?.getPlaylistId === "function" ? playerApi.getPlaylistId() : "";
+        let album = null;
+        let hasFullMetadata = false;
+
+        let currentItem = playerBar?.currentItem;
+        if (currentItem !== null && currentItem !== undefined) {
+          hasFullMetadata = true;
+
+          if (Array.isArray(currentItem.title?.runs)) {
+            videoDetails.title = currentItem.title.runs.map(v => v.text).join("");
+          }
+          if (currentItem.thumbnail) {
+            videoDetails.thumbnail = currentItem.thumbnail;
+          }
+
+          const runs = currentItem.longBylineText?.runs;
+          if (Array.isArray(runs)) {
+            for (let i = 0; i < runs.length; i++) {
+              const item = runs[i];
+              if (item?.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType === "MUSIC_PAGE_TYPE_ALBUM") {
+                album = {
+                  id: item.navigationEndpoint.browseEndpoint.browseId,
+                  text: item.text
+                };
+                break;
+              }
+            }
+          }
+        }
+
+        const state = enixmStore?.getState?.() || {};
+        const likeButtonData = playerBar?.querySelector?.("ytmusic-like-button-renderer")?.data;
+        const defaultLikeStatus = likeButtonData?.likeStatus ?? "UNKNOWN";
+        const storeLikeStatus = state?.likeStatus?.videos?.[videoDetails.videoId];
+        const likeStatus = storeLikeStatus ? storeLikeStatus : defaultLikeStatus;
+
+        window.enixm?.sendVideoData(videoDetails, playlistId, album, likeStatus, hasFullMetadata);
+      } catch (err) {
+        console.warn("[ENIXM] sendCurrentVideoData hatasi:", err);
+      }
+    }
+
     function tryHookPlayerApi() {
+      hookVideoElement();
+
       if (isHooked) return true;
 
       try {
@@ -55,53 +136,23 @@
 
         playerApi.addEventListener("onVideoDataChange", event => {
           try {
-            if (event?.playertype === 1 && (event?.type === "dataloaded" || event?.type === "dataupdated")) {
-              const resp = playerApi.getPlayerResponse?.();
-              let videoDetails = resp?.videoDetails;
-              if (!videoDetails) return;
-
-              let playlistId = typeof playerApi.getPlaylistId === "function" ? playerApi.getPlaylistId() : "";
-              let album = null;
-              let hasFullMetadata = false;
-
-              let currentItem = playerBar.currentItem;
-              if (currentItem !== null && currentItem !== undefined) {
-                hasFullMetadata = true;
-
-                if (Array.isArray(currentItem.title?.runs)) {
-                  videoDetails.title = currentItem.title.runs.map(v => v.text).join("");
-                }
-                if (currentItem.thumbnail) {
-                  videoDetails.thumbnail = currentItem.thumbnail;
-                }
-
-                const runs = currentItem.longBylineText?.runs;
-                if (Array.isArray(runs)) {
-                  for (let i = 0; i < runs.length; i++) {
-                    const item = runs[i];
-                    if (item?.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType === "MUSIC_PAGE_TYPE_ALBUM") {
-                      album = {
-                        id: item.navigationEndpoint.browseEndpoint.browseId,
-                        text: item.text
-                      };
-                      break;
-                    }
-                  }
-                }
-              }
-
-              const state = enixmStore?.getState?.() || {};
-              const likeButtonData = playerBar.querySelector?.("ytmusic-like-button-renderer")?.data;
-              const defaultLikeStatus = likeButtonData?.likeStatus ?? "UNKNOWN";
-              const storeLikeStatus = state?.likeStatus?.videos?.[videoDetails.videoId];
-              const likeStatus = storeLikeStatus ? storeLikeStatus : defaultLikeStatus;
-
-              window.enixm?.sendVideoData(videoDetails, playlistId, album, likeStatus, hasFullMetadata);
+            if (event?.type === "dataloaded" || event?.type === "dataupdated" || event?.playertype === 1) {
+              sendCurrentVideoData(playerBar, playerApi);
             }
           } catch (err) {
             console.warn("[ENIXM] onVideoDataChange hatasi:", err);
           }
         });
+
+        // Send initial state & video data immediately upon hook
+        try {
+          const currentState = typeof playerApi.getPlayerState === "function" ? playerApi.getPlayerState() : -1;
+          if (currentState !== -1) {
+            window.enixm?.sendVideoState(currentState);
+          }
+        } catch (e) {}
+
+        sendCurrentVideoData(playerBar, playerApi);
 
         isHooked = true;
         console.debug("[ENIXM] PlayerApi basariyla hooklandi.");
@@ -112,16 +163,23 @@
       }
     }
 
-    // İlk deneme
+    // İlk deneme ve periyodik hook kontrolleri
     if (!tryHookPlayerApi()) {
       let attempts = 0;
       const hookInterval = setInterval(() => {
         attempts++;
+        hookVideoElement();
         if (tryHookPlayerApi() || attempts > 60) {
           clearInterval(hookInterval);
         }
       }, 500);
+    } else {
+      hookVideoElement();
     }
+
+    setInterval(() => {
+      hookVideoElement();
+    }, 2000);
 
     if (enixmStore?.subscribe) {
       enixmStore.subscribe(() => {

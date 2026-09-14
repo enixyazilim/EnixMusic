@@ -1,4 +1,4 @@
-import createError, { FastifyError } from "@fastify/error";
+import { createError, FastifyError } from "@fastify/error";
 import { RepeatMode } from "../../../player-state-store";
 
 const errorCodes = [

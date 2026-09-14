@@ -4,7 +4,7 @@ import { FastifyPluginCallback, FastifyPluginOptions } from "fastify";
 import { StoreSchema } from "~shared/store/schema";
 import playerStateStore, { PlayerState, RepeatMode } from "../../../../player-state-store";
 import { createAuthToken, getIsTemporaryAuthCodeValidAndRemove, getTemporaryAuthCode, isAuthValid, isAuthValidMiddleware } from "../../api-shared/auth";
-import fastifyRateLimit from "@fastify/rate-limit";
+import { fastifyRateLimit } from "@fastify/rate-limit";
 import crypto from "crypto";
 import {
   APIV1CommandRequestBody,

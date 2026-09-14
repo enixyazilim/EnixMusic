@@ -41,7 +41,9 @@ export const tr = {
       auto: "Otomatik",
       white: "Beyaz",
       black: "Siyah"
-    }
+    },
+    mouseWheelVolume: "Fare tekerleği ile ses kontrolü",
+    mouseWheelVolumeDesc: "Oynatıcı üzerinde fare tekerleğini yukarı/aşağı kaydırarak sesi pratik ve hassas şekilde ayarlamanızı sağlar"
   },
   playback: {
     continueWhereYouLeftOff: "Kaldığın yerden devam et",
@@ -55,7 +57,13 @@ export const tr = {
     ratioVolume: "Hassas Desibel Ses Kontrolü (Logaritmik Ses)",
     ratioVolumeDesc: "Ses seviye çubuğunun insan kulağının duyumuna (Desibel ölçeğine) göre daha orantılı ve pürüzsüz artmasını sağlar",
     autoConfirmKeepPlaying: "Oynatmaya devam et uyarısını otomatik geç",
-    autoConfirmKeepPlayingDesc: "YouTube'un uzun süreli dinlemelerde 'Oynatmaya devam edilsin mi?' uyarısı çıkarıp müziği durdurmasını engeller"
+    autoConfirmKeepPlayingDesc: "YouTube'un uzun süreli dinlemelerde 'Oynatmaya devam edilsin mi?' uyarısı çıkarıp müziği durdurmasını engeller",
+    audioOnlyMode: "Sadece Müzik Modu (Video Gizleme & Veri Tasarrufu)",
+    audioOnlyModeDesc: "Video oynatıcısını gizler ve video çözmeyi durdurarak CPU, GPU ve internet veri tüketimini en aza indirir",
+    skipDislikedSongs: "Beğenilmeyen şarkıları otomatik atla",
+    skipDislikedSongsDesc: "Dislike (beğenmedim) verdiğiniz bir şarkı çaldığında veya sıraya geldiğinde doğrudan bir sonraki şarkıya geçer",
+    skipSilences: "Şarkı başı ve sonu sessizliklerini atla",
+    skipSilencesDesc: "Şarkının başında veya sonundaki sessiz boşlukları atlayarak doğrudan müziğin başladığı saniyeye geçer"
   },
   integrations: {
     companionServer: "Eşlik eden sunucu (Companion server / Mobil Uzaktan Kumanda)",

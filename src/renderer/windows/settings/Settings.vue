@@ -51,6 +51,7 @@ const customCSSEnabled = ref<boolean>(appearance.customCSSEnabled);
 const customCSSPath = ref<string>(appearance.customCSSPath);
 const zoom = ref<number>(appearance.zoom);
 const trayIconStyle = ref<number>(appearance.trayIconStyle);
+const mouseWheelVolume = ref<boolean>(appearance.mouseWheelVolume ?? false);
 
 const continueWhereYouLeftOff = ref<boolean>(playback.continueWhereYouLeftOff);
 const continueWhereYouLeftOffPaused = ref<boolean>(playback.continueWhereYouLeftOffPaused);
@@ -58,6 +59,9 @@ const enableSpeakerFill = ref<boolean>(playback.enableSpeakerFill);
 const progressInTaskbar = ref<boolean>(playback.progressInTaskbar);
 const ratioVolume = ref<boolean>(playback.ratioVolume);
 const autoConfirmKeepPlaying = ref<boolean>(playback.autoConfirmKeepPlaying);
+const audioOnlyMode = ref<boolean>(playback.audioOnlyMode ?? false);
+const skipDislikedSongs = ref<boolean>(playback.skipDislikedSongs ?? false);
+const skipSilences = ref<boolean>(playback.skipSilences ?? false);
 
 const companionServerEnabled = ref<boolean>(integrations.companionServerEnabled);
 const companionServerAuthTokens = ref<AuthToken[]>(
@@ -88,6 +92,7 @@ store.onDidAnyChange(async newState => {
   customCSSPath.value = newState.appearance.customCSSPath;
   zoom.value = newState.appearance.zoom;
   trayIconStyle.value = newState.appearance.trayIconStyle;
+  mouseWheelVolume.value = newState.appearance.mouseWheelVolume ?? false;
 
   continueWhereYouLeftOff.value = newState.playback.continueWhereYouLeftOff;
   continueWhereYouLeftOffPaused.value = newState.playback.continueWhereYouLeftOffPaused;
@@ -95,6 +100,9 @@ store.onDidAnyChange(async newState => {
   progressInTaskbar.value = newState.playback.progressInTaskbar;
   ratioVolume.value = newState.playback.ratioVolume;
   autoConfirmKeepPlaying.value = newState.playback.autoConfirmKeepPlaying;
+  audioOnlyMode.value = newState.playback.audioOnlyMode ?? false;
+  skipDislikedSongs.value = newState.playback.skipDislikedSongs ?? false;
+  skipSilences.value = newState.playback.skipSilences ?? false;
 
   companionServerEnabled.value = newState.integrations.companionServerEnabled;
   companionServerAuthTokens.value = safeStorageAvailable.value
@@ -161,6 +169,7 @@ async function settingsChanged() {
   store.set("appearance.customCSSEnabled", customCSSEnabled.value);
   store.set("appearance.zoom", zoom.value);
   store.set("appearance.trayIconStyle", trayIconStyle.value);
+  store.set("appearance.mouseWheelVolume", mouseWheelVolume.value);
 
   store.set("playback.continueWhereYouLeftOff", continueWhereYouLeftOff.value);
   store.set("playback.continueWhereYouLeftOffPaused", continueWhereYouLeftOffPaused.value);
@@ -168,6 +177,9 @@ async function settingsChanged() {
   store.set("playback.enableSpeakerFill", enableSpeakerFill.value);
   store.set("playback.ratioVolume", ratioVolume.value);
   store.set("playback.autoConfirmKeepPlaying", autoConfirmKeepPlaying.value);
+  store.set("playback.audioOnlyMode", audioOnlyMode.value);
+  store.set("playback.skipDislikedSongs", skipDislikedSongs.value);
+  store.set("playback.skipSilences", skipSilences.value);
 
   store.set("integrations.companionServerEnabled", companionServerEnabled.value);
   store.set("integrations.companionServerCORSWildcardEnabled", companionServerCORSWildcardEnabled.value);
@@ -373,9 +385,23 @@ window.enixm.handleUpdateDownloaded(() => {
             :description="t.appearance.trayIconStyleDesc"
             @change="settingsChanged"
           />
+          <EnixMSetting
+            v-model="mouseWheelVolume"
+            type="checkbox"
+            :name="t.appearance.mouseWheelVolume"
+            :description="t.appearance.mouseWheelVolumeDesc"
+            @change="settingsChanged"
+          />
         </div>
 
         <div v-if="currentTab === 3" class="playback-tab">
+          <EnixMSetting
+            v-model="audioOnlyMode"
+            type="checkbox"
+            :name="t.playback.audioOnlyMode"
+            :description="t.playback.audioOnlyModeDesc"
+            @change="settingsChanged"
+          />
           <EnixMSetting
             v-model="continueWhereYouLeftOff"
             :name="t.playback.continueWhereYouLeftOff"
@@ -419,6 +445,20 @@ window.enixm.handleUpdateDownloaded(() => {
             type="checkbox"
             :name="t.playback.autoConfirmKeepPlaying"
             :description="t.playback.autoConfirmKeepPlayingDesc"
+            @change="settingsChanged"
+          />
+          <EnixMSetting
+            v-model="skipDislikedSongs"
+            type="checkbox"
+            :name="t.playback.skipDislikedSongs"
+            :description="t.playback.skipDislikedSongsDesc"
+            @change="settingsChanged"
+          />
+          <EnixMSetting
+            v-model="skipSilences"
+            type="checkbox"
+            :name="t.playback.skipSilences"
+            :description="t.playback.skipSilencesDesc"
             @change="settingsChanged"
           />
         </div>
