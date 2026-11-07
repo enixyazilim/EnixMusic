@@ -1,0 +1,476 @@
+/* Enix Music - Authentic Settings Modal & YouTube Music Theme */
+
+/* Clean Settings Modal Backdrop */
+#enix-settings-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+  background: rgba(0, 0, 0, 0.72) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: "YouTube Sans", "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  user-select: none !important;
+  color: #ffffff !important;
+}
+
+/* Modal Window Container */
+#enix-settings-dialog {
+  width: 780px !important;
+  max-width: 92vw !important;
+  max-height: 86vh !important;
+  background: #111113 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Modal Header */
+.enix-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px 28px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.enix-modal-title {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.4px !important;
+}
+
+.enix-modal-close-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #cccccc !important;
+  font-size: 15px !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.enix-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+/* Modal Scrollable Body */
+.enix-modal-body {
+  flex: 1 !important;
+  padding: 24px 28px 36px !important;
+  overflow-y: auto !important;
+}
+
+/* Section Box & Setting Rows */
+.enix-settings-section {
+  margin-bottom: 24px !important;
+}
+
+.enix-section-title {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #8e8e93 !important;
+  letter-spacing: 0.6px !important;
+  margin-bottom: 8px !important;
+  text-transform: uppercase !important;
+}
+
+.enix-section-card {
+  background: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 12px !important;
+  padding: 0 20px !important;
+}
+
+.enix-setting-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 15px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  min-height: 48px !important;
+}
+
+.enix-setting-row:last-child {
+  border-bottom: none !important;
+}
+
+.enix-setting-title {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+  min-width: 210px !important;
+  max-width: 250px !important;
+  flex-shrink: 0 !important;
+}
+
+.enix-setting-desc {
+  font-size: 13px !important;
+  color: #888888 !important;
+  flex: 1 !important;
+  margin: 0 16px !important;
+  line-height: 1.4 !important;
+}
+
+.enix-setting-control {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+/* Red Toggle Switch */
+.enix-switch {
+  position: relative !important;
+  display: inline-block !important;
+  width: 44px !important;
+  height: 24px !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+}
+
+.enix-switch input {
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+}
+
+.enix-slider {
+  position: absolute !important;
+  inset: 0 !important;
+  background-color: #38383c !important;
+  border-radius: 24px !important;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.enix-slider::before {
+  content: "" !important;
+  position: absolute !important;
+  height: 20px !important;
+  width: 20px !important;
+  left: 2px !important;
+  bottom: 2px !important;
+  background-color: #ffffff !important;
+  border-radius: 50% !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+.enix-switch input:checked + .enix-slider {
+  background-color: #e50914 !important;
+}
+
+.enix-switch input:checked + .enix-slider::before {
+  transform: translateX(20px) !important;
+}
+
+/* Dropdown Select Component */
+.enix-select {
+  background: #242428 !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 8px !important;
+  color: #f2f2f2 !important;
+  font-size: 13px !important;
+  font-family: inherit !important;
+  padding: 7px 32px 7px 14px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23aaaaaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  transition: border-color 0.15s, background-color 0.15s !important;
+}
+
+.enix-select:hover {
+  border-color: rgba(255, 255, 255, 0.26) !important;
+  background-color: #2c2c30 !important;
+}
+
+.enix-select:focus {
+  border-color: #e50914 !important;
+}
+
+.enix-select option {
+  background: #1c1c1f !important;
+  color: #ffffff !important;
+}
+
+/* Secondary Action Button */
+.enix-btn-secondary {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 8px !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  font-family: inherit !important;
+  padding: 6px 16px !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.enix-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.26) !important;
+}
+
+.enix-btn-secondary:active {
+  transform: scale(0.97) !important;
+}
+
+/* Custom Scrollbar */
+.enix-modal-body::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.enix-modal-body::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.enix-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 4px !important;
+}
+
+.enix-modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* YouTube Music Sidebar "Ayarlar" Button - 100% Authentic Matching Styles */
+#enix-guide-settings-entry {
+  display: flex !important;
+  align-items: center !important;
+  height: 48px !important;
+  box-sizing: border-box !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  color: #ffffff !important;
+  background-color: transparent !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+#enix-guide-settings-entry:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+#enix-guide-settings-entry:active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+#enix-guide-settings-entry svg {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  margin-right: 22px !important;
+  display: block !important;
+  fill: #ffffff !important;
+  color: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+#enix-guide-settings-entry .title {
+  font-family: "YouTube Sans", "Roboto", -apple-system, sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: inline-block !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+
+/* YouTube Music Mini Guide (Collapsed Sidebar) Settings Button */
+#enix-mini-guide-settings-entry {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 64px !important;
+  margin: 0 4px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  color: #ffffff !important;
+  background-color: transparent !important;
+  transition: background-color 0.15s ease !important;
+  box-sizing: border-box !important;
+  padding: 4px 0 !important;
+}
+
+#enix-mini-guide-settings-entry:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+#enix-mini-guide-settings-entry:active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+#enix-mini-guide-settings-entry svg {
+  width: 24px !important;
+  height: 24px !important;
+  margin-bottom: 6px !important;
+  display: block !important;
+  fill: #ffffff !important;
+  color: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+#enix-mini-guide-settings-entry .title {
+  font-family: "YouTube Sans", "Roboto", -apple-system, sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: center !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+/* YouTube Music Native Song / Video Switcher (AV Toggle) */
+ytmusic-player-page ytmusic-av-toggle,
+ytmusic-player-page[has-av-switcher] ytmusic-av-toggle {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 0 auto 16px auto !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 20 !important;
+  position: relative !important;
+}
+
+ytmusic-av-toggle {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 20px !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+  user-select: none !important;
+}
+
+ytmusic-av-toggle tp-yt-paper-button {
+  height: 32px !important;
+  padding: 0 20px !important;
+  border-radius: 16px !important;
+  border: none !important;
+  font-family: "YouTube Sans", "Roboto", -apple-system, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  color: #aaaaaa !important;
+  outline: none !important;
+}
+
+ytmusic-av-toggle tp-yt-paper-button.active,
+ytmusic-av-toggle tp-yt-paper-button[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+ytmusic-av-toggle tp-yt-paper-button:hover:not(.active):not([disabled]) {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+ytmusic-av-toggle tp-yt-paper-button[disabled],
+ytmusic-av-toggle[toggle-disabled] tp-yt-paper-button#video-button {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* Suppress "Video kullanılamıyor" error toasts from YouTube Music */
+tp-yt-paper-toast[enix-suppress="true"],
+ytmusic-toast-overlay[enix-suppress="true"] {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+
+/* Enix Player Cover Layer (Guarantees Album Art in Song Mode) */
+#enix-player-cover {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #000000 !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s ease, visibility 0.2s ease !important;
+}
+
+#enix-player-cover-img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  object-fit: contain !important;
+  border-radius: 8px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7) !important;
+  display: block !important;
+}
+
+/* Enix Mode: Song (Display Album Artwork, Hide Video Canvas) */
+ytmusic-player[enix-mode="song"] #enix-player-cover {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+ytmusic-player[enix-mode="song"] #song-video {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Enix Mode: Video (Display Video Canvas, Hide Album Artwork) */
+ytmusic-player[enix-mode="video"] #enix-player-cover {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+ytmusic-player[enix-mode="video"] #song-video {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}

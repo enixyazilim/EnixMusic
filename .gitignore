@@ -7,6 +7,7 @@ dist/
 out/
 build/
 *.exe
+!releases/*.exe
 *.zip
 *.tar.gz
 *.dmg
@@ -41,3 +42,13 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+
+# Rust & Tauri
+target/
+src-tauri/target/
+
+# References (Local only)
+references/
+ytmdesktop/
+pear-desktop/
+

@@ -1,0 +1,55 @@
+[package]
+name = "enix-music"
+version = "0.3.0"
+description = "Enix Music - Modern & Lightweight YouTube Music Desktop Client"
+authors = ["Enix Yazılım"]
+license = "GPL-3.0-only"
+repository = "https://github.com/enixyazilim/EnixMusic"
+edition = "2024"
+rust-version = "1.90"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "0.4"
+tokio = { version = "1", features = ["sync", "time", "rt-multi-thread"] }
+discord-rich-presence = "0.2"
+souvlaki = "0.7"
+raw-window-handle = "0.6"
+ureq = { version = "2.10", features = ["json", "tls"] }
+open = "5"
+semver = "1.0"
+notify-rust = "4"
+
+[dependencies.tauri]
+version = "2.12.5"
+features = ["tray-icon"]
+
+[dependencies.tauri-plugin-log]
+version = "2"
+
+[dependencies.tauri-plugin-global-shortcut]
+version = "2"
+
+[dependencies.tauri-plugin-notification]
+version = "2"
+
+[target.'cfg(windows)'.dependencies.windows]
+version = "0.62"
+features = [
+    "Win32_Foundation",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_PropertiesSystem",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Controls",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage"
+]
